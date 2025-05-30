@@ -1,0 +1,17 @@
+a = 5
+b = 10
+t1 = a < b
+t2 = t1 and true
+if_false t2 goto L1
+print a
+goto L2
+L1:
+print b
+L2:
+L3:
+t3 = a < b
+if_false t3 goto L4
+t4 = a + 1
+a = t4
+goto L3
+L4:

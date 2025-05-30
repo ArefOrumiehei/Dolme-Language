@@ -1,0 +1,10 @@
+let a = 5;
+let b = 10;
+if (a < b and true) {
+    print(a);
+} else {
+    print(b);
+}
+while (a < b) {
+    a = a + 1;
+}
