@@ -1,6 +1,5 @@
-# parser.py
-from codegen import CodeGenerator
-from lexer import tokenize
+from compiler.codegen import  CodeGenerator
+from py_v.helpers.colorize import colorize
 
 class Parser:
     def __init__(self, tokens):
@@ -120,8 +119,7 @@ class Parser:
         print("[parse] PrintStmt")
         self.eat('KEYWORD')  # print
         self.eat('LPAREN')
-        val = self.expr()
-        self.codegen.emit(f"print {val}")
+        self.eat('ID')
         self.eat('RPAREN')
         self.eat('SEMI')
 
@@ -218,20 +216,15 @@ class Parser:
     def rel_expr(self):
         print("[parse] RelExpr")
         left = self.bool_primary()
-        if self.current_token and self.current_token[0] == 'EQ':
-            self.eat('EQ')
-            right = self.expr()
-            temp = self.codegen.new_temp()
-            self.codegen.emit(f"{temp} = {left} == {right}")
-            return temp
-        elif self.current_token and self.current_token[0] in ('NE', 'LE', 'GE', 'LT', 'GT'):
+        if self.current_token and self.current_token[0] in ('EQ', 'NE', 'LE', 'GE', 'LT', 'GT'):
             op = self.current_token[1]
             self.eat(self.current_token[0])
-            right = self.expr()
+            right = self.bool_primary()
             temp = self.codegen.new_temp()
             self.codegen.emit(f"{temp} = {left} {op} {right}")
             return temp
-        return left
+        else:
+            return left
 
 
     def bool_primary(self):
