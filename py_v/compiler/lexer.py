@@ -1,6 +1,8 @@
 import re
 
 token_specs = [
+    ('COMMENT_BLOCK', r'/\*.*?\*/'),
+    ('COMMENT', r'//.*'),
     ('NUMBER',    r'\d+(\.\d+)?([eE][+-]?\d+)?'),
     ('STRING',     r'"[^"\n]*"'),
     ('ID',        r'[a-zA-Z_][a-zA-Z0-9_]*'),
@@ -28,7 +30,18 @@ token_specs = [
     ('MISMATCH',  r'.'),                          # anything not valid
 ]
 
-keywords = {'let', 'if', 'else', 'while', 'print', 'true', 'false', 'not', 'and', 'or', 'function'}
+keywords = {
+    'let', 
+    'if', 
+    'else', 
+    'while', 
+    'print', 
+    'true', 
+    'false', 
+    'not', 
+    'and', 
+    'or', 
+}
 
 tok_regex = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in token_specs)
 get_token = re.compile(tok_regex).match
@@ -48,7 +61,7 @@ def tokenize(code):
         print("type:", type)
         print("value:", value)
 
-        if type == 'SKIP':
+        if type in {"SKIP", "COMMENT_BLOCK", "COMMENT"}:
             lines = value.count('\n')
             if lines > 0:
                 line += lines
