@@ -3,7 +3,6 @@ class CodeGenerator:
         self.code = []
         self.temp_count = 0
         self.label_count = 0
-        self.symbols = {}
 
     def new_temp(self):
         self.temp_count += 1
@@ -15,7 +14,7 @@ class CodeGenerator:
 
     def emit(self, line):
         self.code.append(line)
-
+    
     def save(self, filename="output.txt"):
         with open(filename, "w") as f:
             for line in self.code:
