@@ -1,2 +1,30 @@
-.vscode
+# VS Code
+.vscode/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+*.env/
+*.venv/
+
+# Output files
+*.log
+*.out
+*.tmp
+
+# Bytecode files
+*.pyc
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Others
+*.swp
 .env
