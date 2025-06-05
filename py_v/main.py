@@ -1,6 +1,6 @@
 from compiler.lexer import tokenize
 from compiler.parser import Parser
-from helpers.colorize import colorize
+from utils.colorize import colorize
 
 with open("./py_v/input.txt", "r") as f:
     code = f.read()
