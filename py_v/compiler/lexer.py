@@ -1,10 +1,11 @@
 import re
+from utils.colorize import colorize
 
 token_specs = [
-    ('COMMENT_BLOCK', r'/\*.*?\*/'),
-    ('COMMENT', r'//.*'),
+    ('COMMENT_BLOCK', r'/\*[\s\S]*?\*/'),
+    ('COMMENT',   r'//[^\n]*'),
     ('NUMBER',    r'\d+(\.\d+)?([eE][+-]?\d+)?'),
-    ('STRING',     r'"[^"\n]*"'),
+    ('STRING',    r'"[^"\n]*"'),
     ('ID',        r'[a-zA-Z_][a-zA-Z0-9_]*'),
     ('LE',        r'<='),
     ('GE',        r'>='),
@@ -46,8 +47,8 @@ keywords = {
 tok_regex = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in token_specs)
 get_token = re.compile(tok_regex).match
 
+
 def tokenize(code):
-    print("Code in lexer:", code)
     tokens = []
     pos = 0
     line = 1
@@ -55,11 +56,11 @@ def tokenize(code):
     while pos < len(code):
         match = get_token(code, pos)
         if not match:
-            raise SyntaxError(f'Unexpected character at line {line} col {col}: {code[pos]}')
+            raise SyntaxError(f'{colorize("[Syntax Error]", "lightred")} unexpected character at line {line} col {col}: {code[pos]}')
         type = match.lastgroup
         value = match.group()
-        print("type:", type)
-        print("value:", value)
+        print(colorize(f"type: {type}", "cyan"))
+        print(colorize(f"value: {value}", "yellow"))
 
         if type in {"SKIP", "COMMENT_BLOCK", "COMMENT"}:
             lines = value.count('\n')
@@ -72,12 +73,12 @@ def tokenize(code):
             tokens.append(('KEYWORD', value, line, col))
             col += len(value)
         elif type == 'MISMATCH':
-            raise SyntaxError(f'Illegal token at line {line} col {col}: {value}')
+            raise SyntaxError(f'{colorize("[Syntax Error]", "lightred")} illegal token at line {line} col {col}: {value}')
         else:
             tokens.append((type, value, line, col))
             col += len(value)
 
         pos = match.end()
-    print("____________Tokens____________")
+    print(colorize("________________________________Tokens________________________________", "magenta"))
     print(tokens)
     return tokens
