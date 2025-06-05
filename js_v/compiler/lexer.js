@@ -1,6 +1,8 @@
 export function tokenize(input) {
   const keywords = new Set(['let', 'if', 'else', 'while', 'print', 'true', 'false', 'not', 'and', 'or']);
   const tokenSpecs = [
+    ['COMMENT_BLOCK', /\/\*[\s\S]*?\*\//y],
+    ['COMMENT', /\/\/[^\n]*/y],
     ['NUMBER',    /\d+(\.\d+)?([eE][+-]?\d+)?/y],
     ['ID',        /[a-zA-Z_][a-zA-Z0-9_]*/y],
     ['EQ',        /==/y],
@@ -35,7 +37,7 @@ export function tokenize(input) {
         const value = result[0];
         match = true;
 
-        if (type === 'SKIP') {
+        if (type === 'SKIP' || type === 'COMMENT' || type === 'COMMENT_BLOCK') {
           pos += value.length;
           break;
         }
