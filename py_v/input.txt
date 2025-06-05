@@ -1,14 +1,2 @@
-let a = -15;
-let b = 10.5;
-let c = a + b;
-if (a < b or true) {
-    print(a);
-    let x = 200;
-} else {
-    let x2 = 500/2;
-    print(b);
-}
-while (a <= 0){
-    print(a);
-    a = a + 10;
-}
+let s = 1;
+print(s);
