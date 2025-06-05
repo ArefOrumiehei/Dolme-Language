@@ -4,31 +4,21 @@ export class Parser {
   constructor(tokens) {
     this.tokens = tokens;
     this.pos = 0;
-    this.current = this.tokens[this.pos] || null;
-    this.tempCount = 0;
-    this.labelCount = 0;
+    this.currentToken = this.tokens[this.pos] || null;
     this.codegen = new CodeGenerator();
   }
 
   next() {
     this.pos++;
-    this.current = this.tokens[this.pos] || null;
+    this.currentToken = this.tokens[this.pos] || null;
   }
 
   eat(type) {
-    if (this.current && this.current[0] === type) {
+    if (this.currentToken && this.currentToken[0] === type) {
       this.next();
     } else {
-      throw new Error(`Expected ${type} but got ${this.current}`);
+      throw new Error(`Expected ${type} but got ${this.currentToken}`);
     }
-  }
-
-  newTemp() {
-    return `_t${++this.tempCount}`;
-  }
-
-  newLabel() {
-    return `_L${++this.labelCount}`;
   }
 
   parse() {
@@ -41,142 +31,163 @@ export class Parser {
   }
 
   stmtList() {
-    while (
-      this.current &&
-      (this.current[0] === "KEYWORD" || this.current[0] === "ID")
-    ) {
+    while (this.currentToken && (this.currentToken[0] === "KEYWORD" || this.currentToken[0] === "ID")) {
       this.stmt();
     }
   }
 
   stmt() {
-    const val = this.current[1];
+    const val = this.currentToken[1];
     if (val === "let") this.decl();
     else if (val === "print") this.printStmt();
     else if (val === "if") this.ifStmt();
     else if (val === "while") this.whileStmt();
-    else if (this.current[0] === "ID") this.assign();
+    else if (this.currentToken[0] === "ID") this.assign();
     else throw new Error(`Unexpected statement: ${val}`);
   }
 
   decl() {
-    this.eat("KEYWORD"); // let
-    const varName = this.current[1];
+    this.eat("KEYWORD");
+    const varName = this.currentToken[1];
     this.eat("ID");
     this.eat("ASSIGN");
     const val = this.expr();
-    this.codegen.assign(varName, val);
+    this.codegen.emit(`${varName} = ${val}`);
     this.eat("SEMI");
   }
 
   assign() {
-    const varName = this.current[1];
+    const varName = this.currentToken[1];
     this.eat("ID");
     this.eat("ASSIGN");
     const val = this.expr();
-    this.codegen.assign(varName, val);
+    this.codegen.emit(`${varName} = ${val}`);
     this.eat("SEMI");
   }
 
   printStmt() {
-    this.eat("KEYWORD"); // print
+    this.eat("KEYWORD");
     this.eat("LPAREN");
     const val = this.expr();
     this.eat("RPAREN");
     this.eat("SEMI");
-    this.codegen.print(val);
+    this.codegen.emit(`print(${val})`);
   }
 
   ifStmt() {
-    this.eat("KEYWORD"); // if
+    this.eat("KEYWORD");
     this.eat("LPAREN");
     const cond = this.cond();
     this.eat("RPAREN");
 
-    const labelElse = this.newLabel();
-    const labelEnd = this.newLabel();
+    const labelElse = this.codegen.newLabel();
+    const labelEnd = this.codegen.newLabel();
 
-    this.codegen.ifFalse(cond, labelElse);
+    this.codegen.emit(`if_false ${cond} goto ${labelElse}`);
 
     this.eat("LBRACE");
     this.stmtList();
     this.eat("RBRACE");
 
-    this.codegen.goto(labelEnd);
-    this.codegen.label(labelElse);
+    this.codegen.emit(`goto ${labelEnd}`);
+    this.codegen.emit(`${labelElse}:`);
 
-    if (this.current && this.current[1] === "else") {
+    if (this.currentToken && this.currentToken[1] === "else") {
       this.eat("KEYWORD");
       this.eat("LBRACE");
       this.stmtList();
       this.eat("RBRACE");
     }
 
-    this.codegen.label(labelEnd);
+    this.codegen.emit(`${labelEnd}:`);
   }
 
   whileStmt() {
-    this.eat("KEYWORD"); // while
-    const labelStart = this.newLabel();
-    const labelEnd = this.newLabel();
+    this.eat("KEYWORD");
+    const labelStart = this.codegen.newLabel();
+    const labelEnd = this.codegen.newLabel();
 
-    this.codegen.label(labelStart);
+    this.codegen.emit(`${labelStart}:`);
 
     this.eat("LPAREN");
     const cond = this.cond();
     this.eat("RPAREN");
 
-    this.codegen.ifFalse(cond, labelEnd);
+    this.codegen.emit(`if_false ${cond} goto ${labelEnd}`);
     this.eat("LBRACE");
     this.stmtList();
     this.eat("RBRACE");
 
-    this.codegen.goto(labelStart);
-    this.codegen.label(labelEnd);
+    this.codegen.emit(`goto ${labelStart}`);
+    this.codegen.emit(`${labelEnd}:`);
   }
 
   expr() {
     let left = this.term();
-    while (this.current && ["PLUS", "MINUS"].includes(this.current[0])) {
-      const op = this.current[1];
-      this.eat(this.current[0]);
+    return this.exprPrime(left);
+  }
+
+  exprPrime(inherited) {
+    while (
+      this.currentToken &&
+      ["PLUS", "MINUS"].includes(this.currentToken[0])
+    ) {
+      const op = this.currentToken[1];
+      this.eat(this.currentToken[0]);
       const right = this.term();
-      const temp = this.newTemp();
-      this.codegen.binaryOp(temp, op, left, right);
-      left = temp;
+      const temp = this.codegen.newTemp();
+      this.codegen.emit(`${temp} = ${inherited} ${op} ${right}`)
+      // this.codegen.binaryOp(temp, op, inherited, right);
+      inherited = temp;
     }
-    return left;
+    return inherited;
   }
 
   term() {
     let left = this.factor();
-    while (this.current && ["MULT", "DIV"].includes(this.current[0])) {
-      const op = this.current[1];
-      this.eat(this.current[0]);
+    return this.termPrime(left);
+  }
+
+  termPrime(inherited) {
+    while (
+      this.currentToken &&
+      ["MULT", "DIV"].includes(this.currentToken[0])
+    ) {
+      const op = this.currentToken[1];
+      this.eat(this.currentToken[0]);
       const right = this.factor();
-      const temp = this.newTemp();
-      this.codegen.binaryOp(temp, op, left, right);
-      left = temp;
+      const temp = this.codegen.newTemp();
+      this.codegen.emit(`${temp} = ${inherited} ${op} ${right}`)
+      // this.codegen.binaryOp(temp, op, inherited, right);
+      inherited = temp;
     }
-    return left;
+    return inherited;
   }
 
   factor() {
-    if (this.current[0] === "ID") {
-      const val = this.current[1];
+    if (this.currentToken[0] === "MINUS") {
+      this.eat("MINUS")
+      const val = this.factor()
+      const temp = this.codegen.newTemp()
+      this.codegen.emit(`${temp} = -${val}`)
+      return temp;
+    }
+
+    if (this.currentToken[0] === "ID") {
+      const val = this.currentToken[1];
       this.eat("ID");
       return val;
-    } else if (this.current[0] === "NUMBER") {
-      const val = this.current[1];
+    } else if (this.currentToken[0] === "NUMBER") {
+      const val = this.currentToken[1];
       this.eat("NUMBER");
       return val;
-    } else if (this.current[0] === "LPAREN") {
+    } else if (this.currentToken[0] === "LPAREN") {
       this.eat("LPAREN");
       const val = this.expr();
       this.eat("RPAREN");
       return val;
     } else {
-      throw new Error(`Unexpected factor: ${this.current}`);
+      throw new Error(`Unexpected factor: ${this.currentToken}`);
     }
   }
 
@@ -186,34 +197,45 @@ export class Parser {
 
   orExpr() {
     let left = this.andExpr();
-    while (this.current && this.current[1] === "or") {
+    return this.orExprPrime(left);
+  }
+
+  orExprPrime(inherited) {
+    while (this.currentToken && this.currentToken[1] === "or") {
       this.eat("KEYWORD");
       const right = this.andExpr();
-      const temp = this.newTemp();
-      this.codegen.binaryOp(temp, "or", left, right);
-      left = temp;
+      const temp = this.codegen.newTemp();
+      this.codegen.emit(`${temp} = ${inherited} or ${right}`)
+      // this.codegen.binaryOp(temp, "or", inherited, right);
+      inherited = temp;
     }
-    return left;
+    return inherited;
   }
 
   andExpr() {
     let left = this.notExpr();
-    while (this.current && this.current[1] === "and") {
+    return this.andExprPrime(left);
+  }
+
+  andExprPrime(inherited) {
+    while (this.currentToken && this.currentToken[1] === "and") {
       this.eat("KEYWORD");
       const right = this.notExpr();
-      const temp = this.newTemp();
-      this.codegen.binaryOp(temp, "and", left, right);
-      left = temp;
+      const temp = this.codegen.newTemp();
+      this.codegen.emit(`${temp} = ${inherited} and ${right}`)
+      // this.codegen.binaryOp(temp, "and", inherited, right);
+      inherited = temp;
     }
-    return left;
+    return inherited;
   }
 
   notExpr() {
-    if (this.current && this.current[1] === "not") {
+    if (this.currentToken && this.currentToken[1] === "not") {
       this.eat("KEYWORD");
       const val = this.notExpr();
-      const temp = this.newTemp();
-      this.codegen.unaryOp(temp, "not", val);
+      const temp = this.codegen.newTemp();
+      this.codegen.emit(`${temp} = not ${val}`)
+      // this.codegen.binaryOp(temp, "not", val);
       return temp;
     } else {
       return this.relExpr();
@@ -221,18 +243,35 @@ export class Parser {
   }
 
   relExpr() {
-    const left = this.expr();
-    if (
-      this.current &&
-      ["EQ", "NE", "LE", "GE", "LT", "GT"].includes(this.current[0])
-    ) {
-      const op = this.current[1];
-      this.eat(this.current[0]);
-      const right = this.expr();
-      const temp = this.newTemp();
-      this.codegen.binaryOp(temp, op, left, right);
+    const left = this.boolPrimary();
+    return this.relExprPrime(left);
+  }
+
+  relExprPrime(inherited) {
+    if (this.currentToken && ["EQ", "NE", "LE", "GE", "LT", "GT"].includes(this.currentToken[0])) {
+      const op = this.currentToken[1];
+      this.eat(this.currentToken[0]);
+      const right = this.boolPrimary();
+      const temp = this.codegen.newTemp();
+      this.codegen.emit(`${temp} = ${inherited} ${op} ${right}`)
+      // this.codegen.binaryOp(temp, op, inherited, right);
       return temp;
     }
-    return left;
+    return inherited;
+  }
+
+  boolPrimary() {
+    if (this.currentToken[1] === "true" || this.currentToken[1] === "false") {
+      const val = this.currentToken[1];
+      this.eat("KEYWORD");
+      return val;
+    } else if (this.currentToken[0] === "LPAREN") {
+      this.eat("LPAREN");
+      const val = this.cond();
+      this.eat("RPAREN");
+      return val;
+    } else {
+      return this.expr();
+    }
   }
 }

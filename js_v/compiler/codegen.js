@@ -10,35 +10,11 @@ export class CodeGenerator {
   }
 
   newTemp() {
-    return `_t${++this.tempCount}`;
+    return `t${++this.tempCount}`;
   }
 
   newLabel() {
-    return `_L${++this.labelCount}`;
-  }
-
-  assign(varName, value) {
-    this.emit(`${varName} = ${value}`);
-  }
-
-  binaryOp(instruction) {
-    this.emit(instruction);
-  }
-
-  print(value) {
-    this.emit(`print ${value}`);
-  }
-
-  ifFalse(condition, label) {
-    this.emit(`ifFalse ${condition} goto ${label}`);
-  }
-
-  goto(label) {
-    this.emit(`goto ${label}`);
-  }
-
-  label(label) {
-    this.emit(`${label}:`);
+    return `L${++this.labelCount}`;
   }
 
   getCode() {
