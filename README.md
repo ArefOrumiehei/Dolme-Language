@@ -186,4 +186,6 @@ Alongside the Python version, a **web-based version** of the **Dolme** compiler 
 4. خروجی در پنجره پایین نمایش داده می‌شود
 
 ---
-![Dolme](./assets/images/dolme2.png)
+<div align="center">
+  <img src="./assets/images/dolme2.png" alt="Dolme" />
+</div>
