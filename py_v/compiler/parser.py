@@ -1,5 +1,6 @@
 from compiler.codegen import  CodeGenerator
 from utils.colorize import colorize, log_parse
+from helpers.validation import is_number, validate_braces, is_valid_var_name
 
 class Parser:
     def __init__(self, tokens):
@@ -41,6 +42,7 @@ class Parser:
 
 
     def parse(self):
+        validate_braces(tokens=self.tokens)
         self.program()
 
     def program(self):
@@ -51,6 +53,13 @@ class Parser:
         log_parse("StmtList")
         while self.current_token and self.current_token[0] in ('KEYWORD', 'ID'):
             self.stmt()
+        if self.current_token != None:
+            if self.current_token[0] in ('SEMI'):
+                raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} unexpected {self.current_token[1]} at line {self.current_token[2]} col {self.current_token[3]}")
+            else:
+                while self.current_token and self.current_token[0] in ('KEYWORD', 'ID'):
+                    self.stmt()
+
 
     def stmt(self):
         log_parse("Stmt")
@@ -65,13 +74,17 @@ class Parser:
         elif self.current_token[1] == 'print':
             self.print_stmt()
         else:
-            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} unexpected statement start: {self.current_token}")
+            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} unexpected statement start: {self.current_token[1]} at line {self.current_token[2]} col {self.current_token[3]}")
 
 
     def decl(self):
         log_parse("Decl")
         self.eat('KEYWORD')
         var_name = self.current_token[1]
+
+        if not is_valid_var_name(var_name):
+            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} invalid variable name '{var_name}'")
+
         self.eat('ID')
         if var_name in self.symbol_table:
             raise Exception(f"{colorize('[Semantic Error]', 'lightred')} variable '{var_name}' already defined")
@@ -125,6 +138,7 @@ class Parser:
 
         if self.current_token and self.current_token[1] == 'else':
             self.eat('KEYWORD')
+
             self.eat('LBRACE')
             self.stmt_list()
             self.eat('RBRACE')
@@ -165,16 +179,11 @@ class Parser:
 
         self.eat('LPAREN')
 
-        if self.current_token is None or self.current_token[0] != 'ID':
-            line = self.prev_token[2] if self.prev_token else '?'
-            col = self.prev_token[3] if self.prev_token else '?'
-            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} expected variable name inside print() at line {line} col {col}")
-
         var_name = self.current_token[1]
 
-        self.eat('ID')
+        expr_val = self.expr()
 
-        if var_name not in self.symbol_table:
+        if not is_number(expr_val) and expr_val not in self.symbol_table and not expr_val.startswith("t"):
             raise Exception(f"{colorize('[Semantic Error]', 'lightred')} variable '{var_name}' used before declaration")
 
         if self.current_token is None or self.current_token[0] != 'RPAREN':
@@ -190,7 +199,7 @@ class Parser:
             raise SyntaxError(f"{colorize('[Syntax error]', 'lightred')} expected ';' after print statement at line {line} col {col}")
 
         self.eat('SEMI')
-        self.codegen.emit(f"print({var_name})")
+        self.codegen.emit(f"print({expr_val})")
 
 
     def expr(self):
@@ -233,9 +242,11 @@ class Parser:
             self.codegen.emit(f"{temp} = -{val}")
             return temp
         elif self.current_token[0] == 'ID':
-            val = self.current_token[1]
+            token_type, val_name, line, col = self.current_token
+            if val_name not in self.symbol_table:
+                raise Exception(f"{colorize('[Semantic Error]', 'lightred')} variable '{val_name}' used before declaration at line {line} col {col}")
             self.eat('ID')
-            return val
+            return val_name
         elif self.current_token[0] == 'NUMBER':
             val = self.current_token[1]
             self.eat('NUMBER')
