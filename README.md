@@ -1,4 +1,6 @@
-# Dolme Language Compiler
+# Dolme Language Compiler   
+![Dolme](./assets/images/dolme.jpg)
+
 
 ### Project Overview 📚
 This project implements a simple programming language called **Dolme**. It covers lexical analysis (Lexer), LL(1) parsing, and three-address intermediate code generation. The main goal is to learn compiler fundamentals and build a basic compiler.
@@ -10,7 +12,8 @@ This project implements a simple programming language called **Dolme**. It cover
 - Loops `while`  
 - Boolean expressions `and`, `or`, `not`  
 - Arithmetic expressions with `+`, `-`, `*`, `/`  
-- Print statement with `print`  
+- Print statement with `print`
+- Write comments with `/*...*/` for multi line comment and `//...` for single line comments  
 
 ### Implementation Details 🔧
 - **Lexer:** Tokenizes input source code  
@@ -19,6 +22,7 @@ This project implements a simple programming language called **Dolme**. It cover
 - **Input/Output:**  
   - Reads from `input.txt`  
   - Outputs intermediate code to `output.txt`  
+- **Interpreter**: Execute the three-address code and display the output
 
 ### How to Run 🚀
 1. Write your Dolme code in `input.txt`  
@@ -31,8 +35,6 @@ This project implements a simple programming language called **Dolme**. It cover
 
 ---
 
-# کامپایلر زبان دلمه
-
 ### معرفی پروژه 📚
 در این پروژه یک زبان برنامه نویسی ساده به نام **دلمه** رو پیاده سازی میکنیم. شامل سه مرحله تحلیل لغوی(lexer) ، تحلیل نحوی (LL1) و تولید کد سه آدرسه است. هدف اصلی از این پروژه یادگیری مفاهیم پایه کامپایلر و ساخت یک کامپایلر ساده است.
 
@@ -44,6 +46,7 @@ This project implements a simple programming language called **Dolme**. It cover
 - عبارات منطقی `and`, `or`, `not`
 - عبارات حسابی با `+`, `-`, `*`, `/`
 - دستور چاپ مقدار با `print`
+- کامنت گذاری با `/*...*/` برای کامنت های چند خطی و `//...` برای کامنت های تک خطی
 
 ### جزئیات پیاده‌سازی 🔧
 - **تحلیلگر لغوی (Lexer):** تجزیه کد ورودی به توکن‌های معنی‌دار  
@@ -52,6 +55,7 @@ This project implements a simple programming language called **Dolme**. It cover
 - **ورودی و خروجی:**  
   - ورودی از فایل `input.txt`  
   - خروجی کد میانی در `output.txt`  
+- **مفسر(Interpreter)**: اجرای کد سه آدرسه و نمایش خروجیش 
 
 ### نحوه اجرا 🚀
 1. کد زبان Dolme را در `input.txt` بنویسید  
@@ -158,7 +162,6 @@ Alongside the Python version, a **web-based version** of the **Dolme** compiler 
 4. The generated intermediate code will be displayed below the editor
 
 ---
-### 🌐 Web Version (JavaScript)
 
 در کنار نسخه Python، یک نسخه وبی از کامپایلر Dolme نیز توسعه داده شده است تا کاربران بتوانند مستقیماً در مرورگر خود کد بنویسند و کد میانی تولید شده را مشاهده کنند.
 
@@ -183,3 +186,4 @@ Alongside the Python version, a **web-based version** of the **Dolme** compiler 
 4. خروجی در پنجره پایین نمایش داده می‌شود
 
 ---
+![Dolme](./assets/images/dolme2.png)
