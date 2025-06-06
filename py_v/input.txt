@@ -1,2 +1,7 @@
-let s = 1;
-print(s);
+let a = 5;
+if (a > 0) {
+    print(a + 100);
+}
+print(a * 1.5);
+
+
