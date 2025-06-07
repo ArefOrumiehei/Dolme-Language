@@ -26,7 +26,6 @@ token_specs = [
     ('LBRACE',    r'\{'),
     ('RBRACE',    r'\}'),
     ('SEMI',      r';'),
-    ('COMMA',     r','),
     ('SKIP',      r'[ \t\n]+'),                   # space and newline
     ('MISMATCH',  r'.'),                          # anything not valid
 ]
