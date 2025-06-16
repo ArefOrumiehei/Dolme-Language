@@ -1,6 +1,7 @@
 from compiler.codegen import  CodeGenerator
 from utils.colorize import colorize, log_parse
 from helpers.validation import is_number, validate_braces, is_valid_var_name
+from helpers.formatting import format_number
 
 class Parser:
     def __init__(self, tokens):
@@ -13,7 +14,7 @@ class Parser:
 
     def eat(self, token_type):
         if self.current_token and self.current_token[0] == token_type:
-            print(f"{colorize('[match]', 'lightyellow')} {self.current_token}")
+            print(f"{colorize('[match]', 'lightyellow')} {colorize(self.current_token, 'lightwhite')}")
             self.prev_token = self.current_token
             self.pos += 1
             self.current_token = self.tokens[self.pos] if self.pos < len(self.tokens) else None
@@ -25,21 +26,20 @@ class Parser:
                 raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} unexpected end of input, expected {expected} at line {line} col {col}")
             else:
                 if token_type in {"RPAREN", "LPAREN"}:
-                    missing_typo = "(  or  )"
+                    raise SyntaxError(
+                        f"{colorize('[Syntax Error]', 'lightred')} expected {token_type} "
+                        f"but got '{self.current_token[1]}' at line {self.current_token[2]} col {self.current_token[3]}. "
+                        f"Perhaps a ( or ) is missing?"
+                    )
                 elif token_type in {"RBRACE", "LBRACE"}:
-                    missing_typo = "{  or  }"
-
-                raise SyntaxError(
-                    f"{colorize('[Syntax Error]', 'lightred')} expected {token_type} "
-                    f"but got '{self.current_token[1]}' at line {self.current_token[2]} col {self.current_token[3]}. "
-                    f"Perhaps a {missing_typo} is missing?"
-                )
-
-                # raise Exception(f"{colorize('[error]', 'lightred')} Syntax error: expected {token_type} but got {self.current_token[1]} at line {self.current_token[2]} col {self.current_token[3]}")
+                    raise SyntaxError(
+                        f"{colorize('[Syntax Error]', 'lightred')} expected {token_type} "
+                        f"but got '{self.current_token[1]}' at line {self.current_token[2]} col {self.current_token[3]}. "
+                        f"Perhaps a '{{' or '}}' is missing?"
+                    )
 
     def peek_token(self):
         return self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else (None, None)
-
 
     def parse(self):
         validate_braces(tokens=self.tokens)
@@ -93,8 +93,20 @@ class Parser:
         val = self.expr()
 
         self.symbol_table[var_name] = val
+        var_adr = self.codegen.new_var_address(var_name)
+
+        if isinstance(val, int) or (isinstance(val, str) and val.isdigit()):
+            val = format_number(val)
+        elif isinstance(val, str) and val in self.symbol_table:
+            val = self.codegen.get_var_address(val)
         
-        self.codegen.emit(f"{var_name} = {val}")
+        self.codegen.emit("=", var_name, val, var_adr)
+
+        if not self.current_token or self.current_token[0] != 'SEMI':
+            line = self.prev_token[2] if self.prev_token else '?'
+            col = self.prev_token[3] if self.prev_token else '?'
+            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} missing ';' at line {line} col {col}")
+
         self.eat('SEMI')
 
     def assign(self):
@@ -107,7 +119,23 @@ class Parser:
         self.eat('ID')
         self.eat('ASSIGN')
         val = self.expr()
-        self.codegen.emit(f"{var_name} = {val}")
+        var_adr = self.codegen.get_var_address(var_name)
+
+        if isinstance(val, int) or (isinstance(val, str) and val.isdigit()):
+            val_formatted = format_number(val)
+            self.codegen.emit("=", val_formatted, "_", var_adr)
+        else:
+            if isinstance(val, str) and val in self.symbol_table:
+                val_addr = self.codegen.get_var_address(val)
+            else:
+                val_addr = val
+            self.codegen.emit("=", val_addr, "_", var_adr)
+
+        if not self.current_token or self.current_token[0] != 'SEMI':
+            line = self.prev_token[2] if self.prev_token else '?'
+            col = self.prev_token[3] if self.prev_token else '?'
+            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} missing ';' at line {line} col {col}")
+
         self.eat('SEMI')
 
 
@@ -124,49 +152,55 @@ class Parser:
         cond_var = self.cond()
         self.eat('RPAREN')
 
-        label_else = self.codegen.new_label()
-        label_end = self.codegen.new_label()
-
-        self.codegen.emit(f"if_false {cond_var} goto {label_else}")
+        jmpf_index = self.codegen.current_line
+        self.codegen.emit('jmpf', cond_var, '_', '___')
 
         self.eat('LBRACE')
         self.stmt_list()
         self.eat('RBRACE')
 
-        self.codegen.emit(f"goto {label_end}")
-        self.codegen.emit(f"{label_else}:")
+        has_else = self.current_token and self.current_token[1] == 'else'
 
-        if self.current_token and self.current_token[1] == 'else':
+        if has_else:
+            jmp_index = self.codegen.current_line
+            self.codegen.emit('jmp', '_', '_', '___')
+
+            else_line = self.codegen.current_line
+            self.codegen.code[jmpf_index] = f"(jmpf, {cond_var}, _, {else_line + 1})"
+
             self.eat('KEYWORD')
-
             self.eat('LBRACE')
             self.stmt_list()
             self.eat('RBRACE')
 
-        self.codegen.emit(f"{label_end}:")
-
+            end_line = self.codegen.current_line
+            self.codegen.code[jmp_index] = f"(jmp, _, _, {end_line + 1})"
+        else:
+            end_line = self.codegen.current_line
+            self.codegen.code[jmpf_index] = f"(jmpf, {cond_var}, _, {end_line + 1})"
+        
 
     def while_stmt(self):
         log_parse("WhileStmt")
         self.eat('KEYWORD')
 
-        label_start = self.codegen.new_label()
-        label_end = self.codegen.new_label()
-
-        self.codegen.emit(f"{label_start}:")
+        start_line = self.codegen.current_line
 
         self.eat('LPAREN')
         cond_var = self.cond()
         self.eat('RPAREN')
 
-        self.codegen.emit(f"if_false {cond_var} goto {label_end}")
+        jmpf_index = self.codegen.current_line
+        self.codegen.emit('jmpf', cond_var, '_', '___')
 
         self.eat('LBRACE')
         self.stmt_list()
         self.eat('RBRACE')
 
-        self.codegen.emit(f"goto {label_start}")
-        self.codegen.emit(f"{label_end}:")
+        self.codegen.emit("jmp", "_", "_", start_line + 1)
+
+        end_line = self.codegen.current_line
+        self.codegen.code[jmpf_index] = f"(jmpf, {cond_var}, _, {end_line + 1})"
 
     def print_stmt(self):
         log_parse("PrintStmt")
@@ -199,7 +233,14 @@ class Parser:
             raise SyntaxError(f"{colorize('[Syntax error]', 'lightred')} expected ';' after print statement at line {line} col {col}")
 
         self.eat('SEMI')
-        self.codegen.emit(f"print({expr_val})")
+
+        if is_number(expr_val):
+            val = format_number(expr_val)
+        elif isinstance(expr_val, str) and expr_val in self.symbol_table:
+            val = self.codegen.get_var_address(expr_val)
+        else:
+            val = expr_val
+        self.codegen.emit("print", val, "_", "_")
 
 
     def expr(self):
@@ -213,7 +254,11 @@ class Parser:
             self.eat(self.current_token[0])
             right = self.term()
             temp = self.codegen.new_temp()
-            self.codegen.emit(f"{temp} = {inherited} {op} {right}")
+
+            left_operand = self.codegen.get_var_address(inherited) if inherited in self.symbol_table else format_number(inherited)
+            right_operand = self.codegen.get_var_address(right) if right in self.symbol_table else format_number(right)
+
+            self.codegen.emit(op, left_operand, right_operand, temp)
             inherited = temp
         return inherited
 
@@ -223,12 +268,16 @@ class Parser:
         return self.term_prime(left)
 
     def term_prime(self, inherited):
-        while self.current_token and self.current_token[0] in ('MULT', 'DIV'):
+        while self.current_token and self.current_token[0] in ('MULT', 'DIV', 'MOD'):
             op = self.current_token[1]
             self.eat(self.current_token[0])
             right = self.factor()
             temp = self.codegen.new_temp()
-            self.codegen.emit(f"{temp} = {inherited} {op} {right}")
+
+            left_operand = self.codegen.get_var_address(inherited) if inherited in self.symbol_table else format_number(inherited)
+            right_operand = self.codegen.get_var_address(right) if right in self.symbol_table else format_number(right)
+
+            self.codegen.emit(op, left_operand, right_operand, temp)
             inherited = temp
         return inherited
 
@@ -239,7 +288,8 @@ class Parser:
             self.eat('MINUS')
             val = self.factor()
             temp = self.codegen.new_temp()
-            self.codegen.emit(f"{temp} = -{val}")
+            val = self.codegen.get_var_address(val) if val in self.symbol_table else format_number(val)
+            self.codegen.emit("uminus", val, "_", temp)
             return temp
         elif self.current_token[0] == 'ID':
             token_type, val_name, line, col = self.current_token
@@ -250,6 +300,10 @@ class Parser:
         elif self.current_token[0] == 'NUMBER':
             val = self.current_token[1]
             self.eat('NUMBER')
+            return val
+        elif self.current_token[0] == 'STRING':
+            val = self.current_token[1]
+            self.eat('STRING')
             return val
         elif self.current_token[0] == 'LPAREN':
             self.eat('LPAREN')
@@ -276,7 +330,8 @@ class Parser:
             self.eat('KEYWORD')
             right = self.and_expr()
             temp = self.codegen.new_temp()
-            self.codegen.emit(f"{temp} = {inherited} or {right}")
+
+            self.codegen.emit('or', inherited, right, temp)
             inherited = temp
         return inherited
 
@@ -291,7 +346,8 @@ class Parser:
             self.eat('KEYWORD')
             right = self.not_expr()
             temp = self.codegen.new_temp()
-            self.codegen.emit(f"{temp} = {inherited} and {right}")
+
+            self.codegen.emit('and', inherited, right, temp)
             inherited = temp
         return inherited
 
@@ -302,7 +358,8 @@ class Parser:
             self.eat('KEYWORD')
             val = self.not_expr()
             temp = self.codegen.new_temp()
-            self.codegen.emit(f"{temp} = not {val}")
+
+            self.codegen.emit('not', val, '_', temp)
             return temp
         else:
             return self.rel_expr()
@@ -319,7 +376,10 @@ class Parser:
             self.eat(self.current_token[0])
             right = self.bool_primary()
             temp = self.codegen.new_temp()
-            self.codegen.emit(f"{temp} = {inherited} {op} {right}")
+            left_operand = self.codegen.get_var_address(inherited) if inherited in self.symbol_table else format_number(inherited)
+            right_operand = self.codegen.get_var_address(right) if right in self.symbol_table else format_number(right)
+
+            self.codegen.emit(op, left_operand, right_operand, temp)
             return temp
         else:
             return inherited
