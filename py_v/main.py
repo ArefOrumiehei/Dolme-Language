@@ -9,7 +9,7 @@ with open("./py_v/input.txt", "r") as f:
 print(colorize("----------------------------Lexer--------------------------------", "lightblue"))
 tokens = tokenize(code)
 
-print(colorize("----------------------------Parser--------------------------------", "lightgreen"))
+print(colorize("----------------------------Parser-------------------------------", "lightgreen"))
 parser = Parser(tokens)
 parser.parse()
 parser.codegen.save("./py_v/output.txt")
@@ -17,8 +17,7 @@ parser.codegen.save("./py_v/output.txt")
 with open("./py_v/output.txt", "r") as f:
     tac_code = f.readlines()
     
-print(colorize("--------------------------------Interpreter--------------------------------", "lightcyan"))
-    
+print(colorize("---------------------------Interpreter---------------------------", "lightcyan"))
 interpreter = ThreeAddressInterpreter(tac_code)
 interpreter.run()
 
