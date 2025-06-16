@@ -1,7 +1,6 @@
-let a = 5;
-if (a > 0) {
-    print(a + 100);
+let n = 4;
+if (n % 2 == 0) {
+  print(2);
+} else {
+    print(1);
 }
-print(a * 1.5);
-
-
