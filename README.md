@@ -35,7 +35,7 @@ This project implements a simple programming language called **Dolme**. It cover
 
 ---
 
-### Grammar of Dolme language
+### Grammer of Dolme language
 
 Program       → StmtList
 
@@ -69,11 +69,14 @@ Term          → Factor Term'
 
 Term'         → * Factor Term' 
               | / Factor Term' 
+              | % Factor Term'
               | ε
 
 Factor        → id 
               | num 
+              | string
               | ( Expr )
+              | - Factor
 
 Cond          → OrExpr
 
