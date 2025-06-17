@@ -1,6 +1,14 @@
-let n = 4;
-if (n % 2 == 0) {
-  print(2);
+let name = "Ali";
+let greet = "Hello";
+let shouldGreet = true;
+let i = 0;
+
+if (not shouldGreet) {
+    while (i < 2) {
+        print(greet);
+        print(name);
+        i = i + 1;
+    }
 } else {
-    print(1);
+    print("No greeting today");
 }
