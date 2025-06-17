@@ -13,20 +13,22 @@ class ThreeAddressInterpreter:
             return None
         if operand in ("true", "false"):
             return 1 if operand == "true" else 0
+        if operand.startswith('"') and operand.endswith('"'):
+            return operand[1:-1]
+        if operand.startswith("'") and operand.endswith("'"):
+            return operand[1:-1]
         if operand.startswith("#"):
             operand = operand[1:]
         
-        if operand in self.variables:
+        if str(operand) in self.variables:
             val = self.variables[operand]
             while isinstance(val, str) and val in self.variables:
                 val = self.variables[val]
-            operand = val
+            return val
+            
 
         if isinstance(operand, int) or isinstance(operand, float):
             return operand
-
-        if isinstance(operand, str) and operand.startswith("#"):
-            operand = operand[1:]
 
         try:
             return int(operand)
@@ -75,7 +77,7 @@ class ThreeAddressInterpreter:
         for line in self.code:
             op, arg1, arg2, result = self.parse_line(line.strip())
             for token in (arg1, arg2, result):
-                if is_valid_var_name(token) and token not in self.symbol_table:
+                if is_valid_var_name(token) and token not in self.symbol_table and token not in {'let', 'if', 'else', 'while', 'print', 'true', 'false', 'not', 'and', 'or',}:
                     self.symbol_table[token] = str(next_address)
                     next_address += 1
 

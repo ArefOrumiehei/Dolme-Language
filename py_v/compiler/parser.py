@@ -153,7 +153,9 @@ class Parser:
         self.eat('RPAREN')
 
         jmpf_index = self.codegen.current_line
-        self.codegen.emit('jmpf', cond_var, '_', '___')
+        cond_addr = self.codegen.get_var_address(cond_var)
+        cond = cond_var if cond_var.startswith("6") else cond_addr
+        self.codegen.emit('jmpf', cond, '_', '___')
 
         self.eat('LBRACE')
         self.stmt_list()
@@ -166,7 +168,7 @@ class Parser:
             self.codegen.emit('jmp', '_', '_', '___')
 
             else_line = self.codegen.current_line
-            self.codegen.code[jmpf_index] = f"(jmpf, {cond_var}, _, {else_line + 1})"
+            self.codegen.code[jmpf_index] = f"(jmpf, {cond}, _, {else_line + 1})"
 
             self.eat('KEYWORD')
             self.eat('LBRACE')
@@ -177,7 +179,7 @@ class Parser:
             self.codegen.code[jmp_index] = f"(jmp, _, _, {end_line + 1})"
         else:
             end_line = self.codegen.current_line
-            self.codegen.code[jmpf_index] = f"(jmpf, {cond_var}, _, {end_line + 1})"
+            self.codegen.code[jmpf_index] = f"(jmpf, {cond}, _, {end_line + 1})"
         
 
     def while_stmt(self):
@@ -191,7 +193,9 @@ class Parser:
         self.eat('RPAREN')
 
         jmpf_index = self.codegen.current_line
-        self.codegen.emit('jmpf', cond_var, '_', '___')
+        cond_addr = self.codegen.get_var_address(cond_var)
+        cond = cond_var if cond_var.startswith("6") else cond_addr
+        self.codegen.emit('jmpf', cond, '_', '___')
 
         self.eat('LBRACE')
         self.stmt_list()
@@ -200,7 +204,7 @@ class Parser:
         self.codegen.emit("jmp", "_", "_", start_line + 1)
 
         end_line = self.codegen.current_line
-        self.codegen.code[jmpf_index] = f"(jmpf, {cond_var}, _, {end_line + 1})"
+        self.codegen.code[jmpf_index] = f"(jmpf, {cond}, _, {end_line + 1})"
 
     def print_stmt(self):
         log_parse("PrintStmt")
@@ -217,8 +221,13 @@ class Parser:
 
         expr_val = self.expr()
 
-        if not is_number(expr_val) and expr_val not in self.symbol_table and not expr_val.startswith("t"):
-            raise Exception(f"{colorize('[Semantic Error]', 'lightred')} variable '{var_name}' used before declaration")
+        if not is_number(expr_val) and not (isinstance(expr_val, str) and (
+                    expr_val.startswith('"') and expr_val.endswith('"') or
+                    expr_val.startswith("'") and expr_val.endswith("'") or
+                    expr_val in self.symbol_table or
+                    expr_val.startswith("t"))):
+                raise Exception(f"{colorize('[Semantic Error]', 'lightred')} variable '{var_name}' used before declaration")
+
 
         if self.current_token is None or self.current_token[0] != 'RPAREN':
             line = self.prev_token[2] if self.prev_token else '?'
@@ -301,6 +310,10 @@ class Parser:
             val = self.current_token[1]
             self.eat('NUMBER')
             return val
+        elif self.current_token[0] == 'KEYWORD' and self.current_token[1] in ('true', 'false'):
+            val = self.current_token[1]
+            self.eat('KEYWORD')
+            return val
         elif self.current_token[0] == 'STRING':
             val = self.current_token[1]
             self.eat('STRING')
@@ -356,8 +369,11 @@ class Parser:
         log_parse("NotExpr")
         if self.current_token and self.current_token[1] == 'not':
             self.eat('KEYWORD')
-            val = self.not_expr()
+            var = self.not_expr()
             temp = self.codegen.new_temp()
+
+            var_addr = self.codegen.get_var_address(var)
+            val = var if var.startswith("6") else var_addr
 
             self.codegen.emit('not', val, '_', temp)
             return temp
