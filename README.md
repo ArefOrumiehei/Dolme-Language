@@ -57,7 +57,7 @@ ElsePart      → else { StmtList } | ε
 
 WhileStmt     → while ( Cond ) { StmtList }
 
-PrintStmt     → print ( id ) ;
+PrintStmt     → print ( expr ) ;
 
 Expr          → Term Expr'
 
