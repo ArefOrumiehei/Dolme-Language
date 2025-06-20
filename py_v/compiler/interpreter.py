@@ -51,7 +51,11 @@ class ThreeAddressInterpreter:
         if op == '+': return lval + rval
         if op == '-': return lval - rval
         if op == '*': return lval * rval
-        if op == '/': return lval / rval
+        if op == '/':
+            if rval == 0:
+                raise RuntimeError(f"{colorize('[Semantic Error]', 'lightred')} Can't division number by zero!")
+            else:
+                return lval / rval
         if op == '%': return lval % rval
         if op == '>': return int(lval > rval)
         if op == '<': return int(lval < rval)
