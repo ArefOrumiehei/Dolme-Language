@@ -1,5 +1,6 @@
 from compiler.codegen import  CodeGenerator
 from utils.colorize import colorize, log_parse
+from utils.show_msg import show_error
 from helpers.validation import is_number, validate_braces, is_valid_var_name
 from helpers.formatting import format_number
 
@@ -23,19 +24,19 @@ class Parser:
                 line = self.prev_token[2] if self.prev_token else '?'
                 col = self.prev_token[3] if self.prev_token else '?'
                 expected = ";" if token_type == "SEMI" else token_type
-                raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Unexpected end of input, expected {expected} at line {line} col {col}")
+                show_error("syntax", "parser", f"Unexpected end of input, expected {expected} at line {line} col {col}")
             else:
                 if token_type in {"RPAREN", "LPAREN"}:
-                    raise SyntaxError(
-                        f"{colorize('[Syntax Error]', 'lightred')} Expected {token_type} "
-                        f"but got '{self.current_token[1]}' at line {self.current_token[2]} col {self.current_token[3]}. "
-                        f"Perhaps a ( or ) is missing?"
+                    show_error(
+                        "syntax", 
+                        "parser",
+                        f"Expected {token_type} but got '{self.current_token[1]}' at line {self.current_token[2]} col {self.current_token[3]}. Perhaps a ( or ) is missing?"
                     )
                 elif token_type in {"RBRACE", "LBRACE"}:
-                    raise SyntaxError(
-                        f"{colorize('[Syntax Error]', 'lightred')} Expected {token_type} "
-                        f"but got '{self.current_token[1]}' at line {self.current_token[2]} col {self.current_token[3]}. "
-                        f"Perhaps a '{{' or '}}' is missing?"
+                    show_error(
+                        "syntax", 
+                        "parser",
+                        f"Expected {token_type} but got '{self.current_token[1]}' at line {self.current_token[2]} col {self.current_token[3]}. Perhaps a '{{' or '}}' is missing?"
                     )
 
     def peek_token(self):
@@ -55,7 +56,7 @@ class Parser:
             self.stmt()
         if self.current_token != None:
             if self.current_token[0] in ('SEMI'):
-                raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Unexpected {self.current_token[1]} at line {self.current_token[2]} col {self.current_token[3]}")
+                show_error("syntax", "parser", f"Unexpected {self.current_token[1]} at line {self.current_token[2]} col {self.current_token[3]}")
             else:
                 while self.current_token and self.current_token[0] in ('KEYWORD', 'ID'):
                     self.stmt()
@@ -74,7 +75,7 @@ class Parser:
         elif self.current_token[1] == 'print':
             self.print_stmt()
         else:
-            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Unexpected statement start: {self.current_token[1]} at line {self.current_token[2]} col {self.current_token[3]}")
+            show_error("syntax", "parser", f"Unexpected statement start: {self.current_token[1]} at line {self.current_token[2]} col {self.current_token[3]}")
 
 
     def decl(self):
@@ -83,11 +84,11 @@ class Parser:
         var_name = self.current_token[1]
 
         if not is_valid_var_name(var_name):
-            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Invalid variable name '{var_name}'")
+            show_error("syntax", "parser", f"Invalid variable name '{var_name}' at line {self.current_token[2]} col {self.current_token[3]}")
 
         self.eat('ID')
         if var_name in self.symbol_table:
-            raise Exception(f"{colorize('[Semantic Error]', 'lightred')} Variable '{var_name}' already defined")
+            show_error("semantic", "parser", f"Variable '{var_name}' already defined at line {self.current_token[2]} col {self.current_token[3]}")
             
         self.eat('ASSIGN')
         val = self.expr()
@@ -105,7 +106,7 @@ class Parser:
         if not self.current_token or self.current_token[0] != 'SEMI':
             line = self.prev_token[2] if self.prev_token else '?'
             col = self.prev_token[3] if self.prev_token else '?'
-            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Missing ';' at line {line} col {col}")
+            show_error("syntax", "parser", f"Missing ';' at line {line} col {col}")
 
         self.eat('SEMI')
 
@@ -114,7 +115,7 @@ class Parser:
         var_name = self.current_token[1]
 
         if var_name not in self.symbol_table:
-            raise Exception(f"{colorize('[Semantic Error]', 'lightred')} Variable '{var_name}' used before declaration.")
+            show_error("semantic", "parser", f"Variable '{var_name}' used before declaration at line {self.current_token[2]} col {self.current_token[3]}")
 
         self.eat('ID')
         self.eat('ASSIGN')
@@ -134,7 +135,7 @@ class Parser:
         if not self.current_token or self.current_token[0] != 'SEMI':
             line = self.prev_token[2] if self.prev_token else '?'
             col = self.prev_token[3] if self.prev_token else '?'
-            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Missing ';' at line {line} col {col}")
+            show_error("syntax", "parser", f"Missing ';' at line {line} col {col}")
 
         self.eat('SEMI')
 
@@ -146,7 +147,7 @@ class Parser:
         if not self.current_token or self.current_token[0] != 'LPAREN':
             line = self.current_token[2] if self.current_token else '?'
             col = self.current_token[3] if self.current_token else '?'
-            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Missing condition for 'if' at line {line} col {col}")
+            show_error("syntax", "parser", f"Missing condition for 'if' at line {line} col {col}")
 
         self.eat('LPAREN')
         cond_var = self.cond()
@@ -213,7 +214,7 @@ class Parser:
         if self.current_token is None or self.current_token[0] != 'LPAREN':
             line = self.prev_token[2] if self.prev_token else '?'
             col = self.prev_token[3] if self.prev_token else '?'
-            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Expected '(' after 'print' at line {line} col {col}")
+            show_error("syntax", "parser", f"Expected '(' after 'print' at line {line} col {col}")
 
         self.eat('LPAREN')
 
@@ -226,20 +227,20 @@ class Parser:
                     expr_val.startswith("'") and expr_val.endswith("'") or
                     expr_val in self.symbol_table or
                     expr_val.startswith("t"))):
-                raise Exception(f"{colorize('[Semantic Error]', 'lightred')} Variable '{var_name}' used before declaration")
+                show_error("semantic", "parser", f"Variable '{var_name}' used before declaration at line {self.current_token[2]} col {self.current_token[3]}")
 
 
         if self.current_token is None or self.current_token[0] != 'RPAREN':
             line = self.prev_token[2] if self.prev_token else '?'
             col = self.prev_token[3] if self.prev_token else '?'
-            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Expected ')' after variable name at line {line} col {col}")
+            show_error("syntax", "parser", f"Expected ')' after variable name at line {line} col {col}")
 
         self.eat('RPAREN')
 
         if self.current_token is None or self.current_token[0] != 'SEMI':
             line = self.prev_token[2] if self.prev_token else '?'
             col = self.prev_token[3] if self.prev_token else '?'
-            raise SyntaxError(f"{colorize('[Syntax error]', 'lightred')} Expected ';' after print statement at line {line} col {col}")
+            show_error("syntax", "parser", f"Expected ';' after print statement at line {line} col {col}")
 
         self.eat('SEMI')
 
@@ -303,7 +304,7 @@ class Parser:
         elif self.current_token[0] == 'ID':
             token_type, val_name, line, col = self.current_token
             if val_name not in self.symbol_table:
-                raise Exception(f"{colorize('[Semantic Error]', 'lightred')} Variable '{val_name}' used before declaration at line {line} col {col}")
+                show_error("semantic", "parser", f"Variable '{val_name}' used before declaration at line {line} col {col}")
             self.eat('ID')
             return val_name
         elif self.current_token[0] == 'NUMBER':
@@ -324,13 +325,13 @@ class Parser:
             self.eat('RPAREN')
             return val
         else:
-            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Unexpected factor: {self.current_token}")
+            show_error("syntax", "parser", f"Unexpected factor: {self.current_token}")
 
 
     def cond(self):
         log_parse("Cond")
         if self.current_token[0] == 'RPAREN':
-            raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Empty condition in if/while at line {self.current_token[2]}")
+            show_error("syntax", "parser", f"Empty condition in if/while at line {self.current_token[2]}")
         return self.or_expr()
 
     def or_expr(self):

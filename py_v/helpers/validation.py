@@ -16,17 +16,17 @@ def validate_braces(tokens):
             stack.append('{')
         elif token_type == 'RBRACE':
             if not stack or stack[-1] != '{':
-                raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} unmatched '}}' found at line {line} col {col}")
+                raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Unmatched '}}' found at line {line} col {col}")
             stack.pop()
         elif token_type == 'LPAREN':
             stack.append('(')
         elif token_type == 'RPAREN':
             if not stack or stack[-1] != '(':
-                raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} unmatched ')' found at line {line} col {col}")
+                raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Unmatched ')' found at line {line} col {col}")
             stack.pop()
 
     if stack:
-        raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} unclosed brace/paren found")
+        raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} Unclosed brace/paren found")
 
 def is_valid_var_name(name):
     pattern = r'^[A-Za-z][A-Za-z0-9_]*$'

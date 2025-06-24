@@ -1,5 +1,6 @@
 import re
 from utils.colorize import colorize
+from utils.show_msg import show_error
 
 token_specs = [
     ('COMMENT_BLOCK', r'/\*[\s\S]*?\*/'),
@@ -56,7 +57,7 @@ def tokenize(code):
     while pos < len(code):
         match = get_token(code, pos)
         if not match:
-            raise SyntaxError(f'{colorize("[Syntax Error]", "lightred")} Unexpected character at line {line} col {col}: {code[pos]}')
+            show_error("syntax", "lexer", f"Unexpected character at line {line} col {col}: {code[pos]}")
         type = match.lastgroup
         value = match.group()
         print(colorize(f"type: {type}", "cyan"))
@@ -73,7 +74,7 @@ def tokenize(code):
             tokens.append(('KEYWORD', value, line, col))
             col += len(value)
         elif type == 'MISMATCH':
-            raise SyntaxError(f'{colorize("[Syntax Error]", "lightred")} Illegal token at line {line} col {col}: {value}')
+            show_error("syntax", "lexer", f"Illegal token at line {line} col {col}: {value}")
         else:
             tokens.append((type, value, line, col))
             col += len(value)

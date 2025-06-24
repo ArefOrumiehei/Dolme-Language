@@ -1,4 +1,5 @@
 from utils.colorize import colorize
+from utils.show_msg import show_error, show_warning
 from helpers.validation import is_valid_var_name
 
 class ThreeAddressInterpreter:
@@ -43,7 +44,7 @@ class ThreeAddressInterpreter:
                         val = self.variables[val]
                     return val
                 else:
-                    raise RuntimeError(f"{colorize('[Runtime Error]', 'lightred')} Unknown variable or temp: {operand}")
+                    show_error("runtime", "interpreter", f"Unknown variable or temp: {operand}")
                 
     def eval_expr(self, left, op, right):
         lval = self.get_value(left)
@@ -53,7 +54,7 @@ class ThreeAddressInterpreter:
         if op == '*': return lval * rval
         if op == '/':
             if rval == 0:
-                raise RuntimeError(f"{colorize('[Semantic Error]', 'lightred')} Can't division number by zero!")
+                show_error("divbyzero", "interpreter", "Can't division number by zero!")
             else:
                 return lval / rval
         if op == '%': return lval % rval
@@ -65,15 +66,15 @@ class ThreeAddressInterpreter:
         if op == '!=': return int(lval != rval)
         if op == 'and': return int(bool(lval) and bool(rval))
         if op == 'or': return int(bool(lval) or bool(rval))
-        raise RuntimeError(f"{colorize('[Runtime Error]', 'lightred')} Unknown operator: {op}")
+        show_error("runtime", "interpreter", f"Unknown operator: {op}")
 
     def parse_line(self, line):
         if not (line.startswith("(") and line.endswith(")")):
-            raise RuntimeError(f"{colorize('[Runtime Error]', 'lightred')} Invalid line format: {line}")
+            show_error("runtime", "interpreter", f"Invalid line format: {line}")
         content = line[1:-1]
         parts = [p.strip() for p in content.split(",")]
         if len(parts) != 4:
-            raise RuntimeError(f"{colorize('[Runtime Error]', 'lightred')} Malformed line: {line}")
+            show_error("runtime", "interpreter", f"Malformed line: {line}")
         return parts  # op, arg1, arg2, result
 
     def preprocess_symbol_table(self):
@@ -93,7 +94,7 @@ class ThreeAddressInterpreter:
             line = self.code[self.instruction_pointer].strip()
             if not line:
                 if self.instruction_pointer == previous_ip:
-                    raise RuntimeError(f"{colorize('[Infinite Loop]', 'yellow')} IP didn't change in last step!")
+                    show_warning("infiniteloop", "interpreter", "IP didn't change in last step!")
                 previous_ip = self.instruction_pointer
                 self.instruction_pointer += 1
                 continue
@@ -124,7 +125,7 @@ class ThreeAddressInterpreter:
             elif op == 'jmp':
                 target = int(result)
                 if target == self.instruction_pointer:
-                    raise RuntimeError(f"{colorize('[Infinite Loop]', 'yellow')} jmp to same line {target}")
+                    show_warning("infiniteloop", "interpreter", f"jmp to same line {target}")
                 self.instruction_pointer = target - 1
                 continue
 
@@ -134,7 +135,7 @@ class ThreeAddressInterpreter:
                 target = int(result)
                 if not cond:
                     if target == self.instruction_pointer:
-                        raise RuntimeError(f"{colorize('[Infinite Loop]', 'yellow')} jmpf to same line {target}")
+                        show_warning("infiniteloop", "interpreter", f"jmp to same line {target}")
                     self.instruction_pointer = target - 1
                     continue
 
@@ -142,6 +143,6 @@ class ThreeAddressInterpreter:
                 print(f"{colorize('Output:', 'lightgreen')} {self.get_value(arg1)}")
 
             else:
-                raise RuntimeError(f"{colorize('[Runtime Error]', 'lightred')} Unknown operation: {op}")
+                show_error("runtime", "interpreter", f"Unknown operation: {op}")
 
             self.instruction_pointer += 1
