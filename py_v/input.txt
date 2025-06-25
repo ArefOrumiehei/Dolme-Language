@@ -1,14 +1,15 @@
-let name = "Ali";
-let greet = "Hello";
-let shouldGreet = true;
 let i = 0;
 
-if (not shouldGreet) {
-    while (i < 2) {
-        print(greet);
-        print(name);
+while (i < 7) {
+    if (i == 2) {
         i = i + 1;
+        continue;
     }
-} else {
-    print("No greeting today");
+
+    if (i == 5) {
+        break;
+    }
+
+    print(i);
+    i = i + 1;
 }
