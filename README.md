@@ -145,6 +145,8 @@ Alongside the Python version, a **web-based version** of the **Dolme** compiler 
 3. Click the **"Compile"** button
 4. The generated intermediate code will be displayed below the editor
 
+### License 📝
+This project is licensed under the [MIT License](./LICENSE).
 
 ---
 <div align="center">
