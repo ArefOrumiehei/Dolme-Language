@@ -5,6 +5,9 @@
 ### Project Overview 📚
 This project implements a simple programming language called **Dolme**. It covers lexical analysis (Lexer), LL(1) parsing, and three-address intermediate code generation. The main goal is to learn compiler fundamentals and build a basic compiler.
 
+### What is Dolme? 
+Dolma is a traditional dish popular in many Middle Eastern, Mediterranean and Balkan cuisines. The name "dolma" means "stuffed" in Turkish and refers to vegetables such as grape leaves, peppers, zucchini or cabbage leaves (the photo shows grape leaf dolma, which is the best) stuffed with a savory mixture of rice, meat, vegetables and spices. The dish is loved by many people for its rich taste, comforting texture and cultural heritage that dates back centuries.
+
 
 ### Language Features ✨
 - Variable declaration with `let`  
@@ -36,6 +39,8 @@ This project implements a simple programming language called **Dolme**. It cover
 - Limited support to defined grammar and tokens  
 - Errors are mostly syntax errors reported clearly  
 
+### Last Features ♿
+- Now can write `break` and `continue` in while loop
 ---
 
 ### Grammer of Dolme language
@@ -49,6 +54,8 @@ Stmt          → Decl
               | IfStmt 
               | WhileStmt 
               | PrintStmt
+              | BreakStmt
+              | ContinueStmt
 
 Decl          → let id = Expr ;
 
@@ -61,6 +68,10 @@ ElsePart      → else { StmtList } | ε
 WhileStmt     → while ( Cond ) { StmtList }
 
 PrintStmt     → print ( expr ) ;
+
+BreakStmt     → break ;
+
+ContinueStmt     → Continue ;
 
 Expr          → Term Expr'
 
