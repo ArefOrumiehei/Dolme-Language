@@ -131,7 +131,7 @@ class ThreeAddressInterpreter:
 
             elif op == 'jmpf':
                 cond = self.get_value(arg1)
-                print(f"{colorize('Condition Result:', 'lightcyan')}", cond)
+                print(f"{colorize('Condition Result:', 'lightcyan')}", "true" if cond == 1 else "false")
                 target = int(result)
                 if not cond:
                     if target == self.instruction_pointer:
