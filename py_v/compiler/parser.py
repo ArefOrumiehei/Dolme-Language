@@ -74,6 +74,10 @@ class Parser:
             self.while_stmt()
         elif self.current_token[1] == 'print':
             self.print_stmt()
+        elif self.current_token[1] == 'break':
+            self.break_stmt()
+        elif self.current_token[1] == 'continue':
+            self.continue_stmt()
         else:
             show_error("syntax", "parser", f"Unexpected statement start: {self.current_token[1]} at line {self.current_token[2]} col {self.current_token[3]}")
 
@@ -188,6 +192,7 @@ class Parser:
         self.eat('KEYWORD')
 
         start_line = self.codegen.current_line
+        self.codegen.continue_stack.append(start_line + 1)
 
         self.eat('LPAREN')
         cond_var = self.cond()
@@ -199,6 +204,10 @@ class Parser:
         self.codegen.emit('jmpf', cond, '_', '___')
 
         self.eat('LBRACE')
+
+        break_indices = []
+        self.codegen.break_stack.append(break_indices)
+
         self.stmt_list()
         self.eat('RBRACE')
 
@@ -206,6 +215,12 @@ class Parser:
 
         end_line = self.codegen.current_line
         self.codegen.code[jmpf_index] = f"(jmpf, {cond}, _, {end_line + 1})"
+
+        for idx in break_indices:
+            self.codegen.code[idx] = f"(jmp, _, _, {end_line + 1})"
+
+        self.codegen.break_stack.pop()
+        self.codegen.continue_stack.pop()
 
     def print_stmt(self):
         log_parse("PrintStmt")
@@ -251,6 +266,34 @@ class Parser:
         else:
             val = expr_val
         self.codegen.emit("print", val, "_", "_")
+
+
+    def break_stmt(self):
+        log_parse("BreakStmt")
+        self.eat('KEYWORD')
+        if self.current_token is None or self.current_token[0] != 'SEMI':
+            show_error("syntax", "parser", f"Expected ';' after 'break' at line {self.prev_token[2]} col {self.prev_token[3]}")
+        self.eat('SEMI')
+
+        if not self.codegen.break_stack:
+            show_error("syntax", "parser", f"'break' used outside loop at line {self.prev_token[2]} col {self.prev_token[3]}")
+
+        self.codegen.emit('jmp', '_', '_', '___')
+        self.codegen.break_stack[-1].append(self.codegen.current_line - 1)
+
+
+    def continue_stmt(self):
+        log_parse("ContinueStmt")
+        self.eat('KEYWORD')
+        if self.current_token is None or self.current_token[0] != 'SEMI':
+            show_error("syntax", "parser", f"Expected ';' after 'continue' at line {self.prev_token[2]} col {self.prev_token[3]}")
+        self.eat('SEMI')
+
+        if not self.codegen.continue_stack:
+            show_error("syntax", "parser", f"'continue' used outside loop at line {self.prev_token[2]} col {self.prev_token[3]}")
+
+        self.codegen.emit('jmp', '_', '_', str(self.codegen.continue_stack[-1]))
+
 
 
     def expr(self):

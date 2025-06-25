@@ -43,6 +43,8 @@ keywords = {
     'not', 
     'and', 
     'or', 
+    'break',
+    'continue'
 }
 
 tok_regex = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in token_specs)
@@ -60,8 +62,9 @@ def tokenize(code):
             show_error("syntax", "lexer", f"Unexpected character at line {line} col {col}: {code[pos]}")
         type = match.lastgroup
         value = match.group()
-        print(colorize(f"type: {type}", "cyan"))
         print(colorize(f"value: {value}", "yellow"))
+        print(colorize(f"type: {type}", "cyan"))
+        print(colorize(f"................", "red"))
 
         if type in {"SKIP", "COMMENT_BLOCK", "COMMENT"}:
             lines = value.count('\n')
