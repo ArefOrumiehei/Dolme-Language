@@ -1,20 +1,34 @@
 from utils.colorize import colorize
 
-def show_error (type, src, msg):
-  colored_msg = colorize(msg, 'lightwhite')
-  if type == "syntax":
-    raise SyntaxError(f"{colorize('[Syntax Error]', 'lightred')} {colored_msg}")
-  elif type == "semantic" and src == "parser":
-    raise Exception(f"{colorize('[Semantic Error]', 'lightred')} {colored_msg}")
-  elif type == "semantic" and src == "interpreter":
-    raise RuntimeError(f"{colorize('[Semantic Error]', 'lightred')} {colored_msg}")
-  elif type == "runtime":
-    raise RuntimeError(f"{colorize('[Runtime Error]', 'lightred')} {colored_msg}")
-  elif type == "divbyzero":
-    raise ZeroDivisionError(f"{colorize('[Semantic Error]', 'lightred')} {colored_msg}")
+_error_map = {
+    ("syntax", None): SyntaxError,
+    ("semantic", "parser"): Exception,
+    ("semantic", "interpreter"): RuntimeError,
+    ("runtime", None): RuntimeError,
+    ("divbyzero", None): ZeroDivisionError,
+}
 
-def show_warning(type, src, msg):
-  colored_msg = colorize(msg, 'lightwhite')
+_warning_map = {
+    "infiniteloop": RuntimeWarning,
+}
 
-  if type == "infiniteloop":
-    raise RuntimeWarning(f"{colorize('[Infinite Loop]', 'yellow')} {colored_msg}")
+def show_error(err_type, src=None, msg=""):
+    colored_msg = colorize(msg, 'lightwhite')
+    exc_class = _error_map.get((err_type, src)) or _error_map.get((err_type, None))
+    if exc_class is None:
+        raise Exception(f"Unknown error type: {err_type} - {msg}")
+    prefix = {
+        "syntax": "[Syntax Error]",
+        "semantic": "[Semantic Error]",
+        "runtime": "[Runtime Error]",
+        "divbyzero": "[Semantic Error]",
+    }.get(err_type, "[Error]")
+    raise exc_class(f"{colorize(prefix, 'lightred')} {colored_msg}")
+
+def show_warning(warn_type, src=None, msg=""):
+    colored_msg = colorize(msg, 'lightwhite')
+    warn_class = _warning_map.get(warn_type)
+    if warn_class:
+        raise warn_class(f"{colorize('[Infinite Loop]', 'yellow')} {colored_msg}")
+    else:
+        print(f"{colorize('[Warning]', 'yellow')} {colored_msg}")
